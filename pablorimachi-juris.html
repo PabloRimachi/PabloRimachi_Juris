@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PabloRimachi_Juris | Análisis Legal Estratégico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent: #dc2626;
+            --accent-light: #f87171;
+            --gray-light: #f3f4f6;
+        }
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #3b82f6 #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div id="root"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+                "react-dom": "https://esm.sh/react-dom@18.2.0"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import React, { useState, useEffect } from 'react';
+        import ReactDOM from 'react-dom/client';
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [publicaciones, setPublicaciones] = useState([]);
+            const [editingId, setEditingId] = useState(null);
+            const [showForm, setShowForm] = useState(false);
+            const [filtroTipo, setFiltroTipo] = useState('todos');
+            
+            const [formData, setFormData] = useState({
+                tipo: 'jurisprudencia',
+                titulo: '',
+                resumen: '',
+                contenidoCompleto: '',
+                fuente: '',
+                fecha: new Date().toISOString().split('T')[0],
+                tags: ''
+            });
+
+            // Cargar datos del localStorage
+            useEffect(() => {
+                const datos = localStorage.getItem('pablorimachi_publicaciones');
+                if (datos) {
+                    setPublicaciones(JSON.parse(datos));
+                }
+            }, []);
+
+            // Guardar en localStorage
+            useEffect(() => {
+                localStorage.setItem('pablorimachi_publicaciones', JSON.stringify(publicaciones));
+            }, [publicaciones]);
+
+            // Resetear formulario
+            const resetForm = () => {
+                setFormData({
+                    tipo: 'jurisprudencia',
+                    titulo: '',
+                    resumen: '',
+                    contenidoCompleto: '',
+                    fuente: '',
+                    fecha: new Date().toISOString().split('T')[0],
+                    tags: ''
+                });
+                setEditingId(null);
+            };
+
+            // Guardar publicación
+            const guardarPublicacion = (e) => {
+                e.preventDefault();
+                if (!formData.titulo.trim()) {
+                    alert('El título es requerido');
+                    return;
+                }
+
+                if (editingId) {
+                    setPublicaciones(publicaciones.map(p => 
+                        p.id === editingId ? { ...formData, id: editingId } : p
+                    ));
+                } else {
+                    setPublicaciones([
+                        { ...formData, id: Date.now() },
+                        ...publicaciones
+                    ]);
+                }
+
+                resetForm();
+                setShowForm(false);
+            };
+
+            // Editar publicación
+            const editarPublicacion = (pub) => {
+                setFormData(pub);
+                setEditingId(pub.id);
+                setShowForm(true);
+            };
+
+            // Eliminar publicación
+            const eliminarPublicacion = (id) => {
+                if (confirm('¿Eliminar esta publicación?')) {
+                    setPublicaciones(publicaciones.filter(p => p.id !== id));
+                }
+            };
+
+            // Compartir en LinkedIn
+            const compartirLinkedin = (pub) => {
+                const texto = `Acabo de publicar: "${pub.titulo}"
+
+${pub.resumen}
+
+Tipo: ${getTipoLabel(pub.tipo)}
+Fecha: ${new Date(pub.fecha).toLocaleDateString('es-PE')}
+
+#Derecho #Legal #Análisis`;
+                
+                const urlShare = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent(texto)}`;
+                window.open(urlShare, '_blank');
+            };
+
+            // Obtener etiqueta de tipo
+            const getTipoLabel = (tipo) => {
+                const labels = {
+                    jurisprudencia: 'Jurisprudencia',
+                    doctrina: 'Doctrina',
+                    normativa: 'Normativa'
+                };
+                return labels[tipo] || tipo;
+            };
+
+            // Obtener color según tipo
+            const getColorTipo = (tipo) => {
+                const colors = {
+                    jurisprudencia: 'bg-blue-100 text-blue-800 border-blue-300',
+                    doctrina: 'bg-purple-100 text-purple-800 border-purple-300',
+                    normativa: 'bg-green-100 text-green-800 border-green-300'
+                };
+                return colors[tipo] || 'bg-gray-100 text-gray-800';
+            };
+
+            // Filtrar publicaciones
+            const publicacionesFiltradas = filtroTipo === 'todos' 
+                ? publicaciones 
+                : publicaciones.filter(p => p.tipo === filtroTipo);
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+                    {/* Header */}
+                    <header className="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg">
+                        <div className="max-w-7xl mx-auto px-4 py-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-4xl font-bold">PabloRimachi_Juris</h1>
+                                    <p className="text-blue-100 mt-1">Análisis Legal Estratégico</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-blue-100 text-sm">Plataforma de Publicación Legal</p>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navegación */}
+                    <nav className="bg-blue-800 sticky top-0 z-40 shadow-md">
+                        <div className="max-w-7xl mx-auto px-4 flex gap-6">
+                            <button
+                                onClick={() => { setActiveTab('dashboard'); setShowForm(false); }}
+                                className={`py-4 px-4 font-semibold transition-all ${activeTab === 'dashboard' ? 'text-white border-b-4 border-yellow-400' : 'text-blue-100 hover:text-white'}`}
+                            >
+                                📊 Dashboard
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('publicaciones')}
+                                className={`py-4 px-4 font-semibold transition-all ${activeTab === 'publicaciones' ? 'text-white border-b-4 border-yellow-400' : 'text-blue-100 hover:text-white'}`}
+                            >
+                                📚 Publicaciones
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('ayuda'); setShowForm(false); }}
+                                className={`py-4 px-4 font-semibold transition-all ${activeTab === 'ayuda' ? 'text-white border-b-4 border-yellow-400' : 'text-blue-100 hover:text-white'}`}
+                            >
+                                ❓ Ayuda
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Contenido Principal */}
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {/* Dashboard */}
+                        {activeTab === 'dashboard' && (
+                            <div>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+                                        <p className="text-gray-500 text-sm font-semibold">TOTAL PUBLICACIONES</p>
+                                        <p className="text-4xl font-bold text-blue-600 mt-2">{publicaciones.length}</p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+                                        <p className="text-gray-500 text-sm font-semibold">DOCTRINA</p>
+                                        <p className="text-4xl font-bold text-purple-600 mt-2">{publicaciones.filter(p => p.tipo === 'doctrina').length}</p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+                                        <p className="text-gray-500 text-sm font-semibold">NORMATIVA</p>
+                                        <p className="text-4xl font-bold text-green-600 mt-2">{publicaciones.filter(p => p.tipo === 'normativa').length}</p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+                                        <p className="text-gray-500 text-sm font-semibold">JURISPRUDENCIA</p>
+                                        <p className="text-4xl font-bold text-red-600 mt-2">{publicaciones.filter(p => p.tipo === 'jurisprudencia').length}</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowForm(!showForm)}
+                                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all mb-6"
+                                >
+                                    ➕ Nueva Publicación
+                                </button>
+
+                                {/* Formulario */}
+                                {showForm && (
+                                    <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+                                        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                            {editingId ? 'Editar Publicación' : 'Nueva Publicación'}
+                                        </h2>
+                                        <form onSubmit={guardarPublicacion} className="space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                        Tipo de Contenido *
+                                                    </label>
+                                                    <select
+                                                        value={formData.tipo}
+                                                        onChange={(e) => setFormData({...formData, tipo: e.target.value})}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
+                                                        <option value="jurisprudencia">Jurisprudencia</option>
+                                                        <option value="doctrina">Doctrina</option>
+                                                        <option value="normativa">Normativa</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                        Fecha
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={formData.fecha}
+                                                        onChange={(e) => setFormData({...formData, fecha: e.target.value})}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Título *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.titulo}
+                                                    onChange={(e) => setFormData({...formData, titulo: e.target.value})}
+                                                    placeholder="Ej: Sentencia sobre responsabilidad laboral..."
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Fuente/Referencia
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.fuente}
+                                                    onChange={(e) => setFormData({...formData, fuente: e.target.value})}
+                                                    placeholder="Ej: Corte Suprema, Código Civil, Doctrina..."
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Resumen (Máx 500 caracteres)
+                                                </label>
+                                                <textarea
+                                                    value={formData.resumen}
+                                                    onChange={(e) => setFormData({...formData, resumen: e.target.value})}
+                                                    placeholder="Resumen ejecutivo para LinkedIn..."
+                                                    maxLength="500"
+                                                    rows="3"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">{formData.resumen.length}/500 caracteres</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Análisis Detallado
+                                                </label>
+                                                <textarea
+                                                    value={formData.contenidoCompleto}
+                                                    onChange={(e) => setFormData({...formData, contenidoCompleto: e.target.value})}
+                                                    placeholder="Análisis completo, conclusiones y relevancia..."
+                                                    rows="6"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Etiquetas (separadas por comas)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.tags}
+                                                    onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                                                    placeholder="Ej: Derecho Laboral, Responsabilidad, 2024"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-4">
+                                                <button
+                                                    type="submit"
+                                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                                                >
+                                                    {editingId ? 'Actualizar' : 'Publicar'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { resetForm(); setShowForm(false); }}
+                                                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-all"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                {/* Últimas Publicaciones */}
+                                {publicaciones.length > 0 && (
+                                    <div className="bg-white rounded-lg shadow-lg p-8">
+                                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Últimas Publicaciones</h3>
+                                        <div className="space-y-4">
+                                            {publicaciones.slice(0, 5).map(pub => (
+                                                <div key={pub.id} className="border-l-4 border-blue-500 pl-4 py-4 hover:bg-gray-50 transition-all rounded">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex-1">
+                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 border ${getColorTipo(pub.tipo)}`}>
+                                                                {getTipoLabel(pub.tipo)}
+                                                            </span>
+                                                            <h4 className="text-lg font-semibold text-gray-800">{pub.titulo}</h4>
+                                                            <p className="text-sm text-gray-500 mt-1">{new Date(pub.fecha).toLocaleDateString('es-PE')}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => editarPublicacion(pub)}
+                                                            className="text-blue-600 hover:text-blue-800 font-semibold text-sm mr-4"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Publicaciones */}
+                        {activeTab === 'publicaciones' && (
+                            <div>
+                                <div className="mb-6 flex gap-2 flex-wrap">
+                                    <button
+                                        onClick={() => setFiltroTipo('todos')}
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${filtroTipo === 'todos' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                    >
+                                        Todas ({publicaciones.length})
+                                    </button>
+                                    <button
+                                        onClick={() => setFiltroTipo('jurisprudencia')}
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${filtroTipo === 'jurisprudencia' ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                    >
+                                        Jurisprudencia ({publicaciones.filter(p => p.tipo === 'jurisprudencia').length})
+                                    </button>
+                                    <button
+                                        onClick={() => setFiltroTipo('doctrina')}
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${filtroTipo === 'doctrina' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                    >
+                                        Doctrina ({publicaciones.filter(p => p.tipo === 'doctrina').length})
+                                    </button>
+                                    <button
+                                        onClick={() => setFiltroTipo('normativa')}
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${filtroTipo === 'normativa' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                    >
+                                        Normativa ({publicaciones.filter(p => p.tipo === 'normativa').length})
+                                    </button>
+                                </div>
+
+                                {publicacionesFiltradas.length === 0 ? (
+                                    <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                                        <p className="text-gray-500 text-lg">No hay publicaciones para mostrar</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-6">
+                                        {publicacionesFiltradas.map(pub => (
+                                            <div key={pub.id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex-1">
+                                                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-3 border ${getColorTipo(pub.tipo)}`}>
+                                                            {getTipoLabel(pub.tipo)}
+                                                        </span>
+                                                        <h3 className="text-2xl font-bold text-gray-800">{pub.titulo}</h3>
+                                                        {pub.fuente && <p className="text-sm text-gray-600 mt-1"><strong>Fuente:</strong> {pub.fuente}</p>}
+                                                        <p className="text-sm text-gray-500 mt-2">{new Date(pub.fecha).toLocaleDateString('es-PE')}</p>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-gray-700 mb-4 leading-relaxed">{pub.resumen}</p>
+
+                                                {pub.contenidoCompleto && (
+                                                    <div className="bg-gray-50 p-4 rounded-lg mb-4 max-h-32 overflow-y-auto">
+                                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{pub.contenidoCompleto}</p>
+                                                    </div>
+                                                )}
+
+                                                {pub.tags && (
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {pub.tags.split(',').map((tag, idx) => (
+                                                            <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                                                #{tag.trim()}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => compartirLinkedin(pub)}
+                                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
+                                                    >
+                                                        💼 Compartir en LinkedIn
+                                                    </button>
+                                                    <button
+                                                        onClick={() => editarPublicacion(pub)}
+                                                        className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                                                    >
+                                                        ✏️ Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => eliminarPublicacion(pub.id)}
+                                                        className="bg-red-200 text-red-800 px-4 py-2 rounded-lg font-semibold hover:bg-red-300 transition-all"
+                                                    >
+                                                        🗑️ Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Ayuda */}
+                        {activeTab === 'ayuda' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 className="text-xl font-bold text-blue-600 mb-4">📚 Doctrina</h3>
+                                    <p className="text-gray-700 mb-4">
+                                        Publica análisis de capítulos de libros, resúmenes doctrinales y teoría legal.
+                                    </p>
+                                    <div className="bg-blue-50 p-3 rounded text-sm text-gray-700">
+                                        <strong>Ejemplo:</strong> "Resumen del Capítulo 5: Responsabilidad Civil del Empleador - Derecho Laboral Peruano"
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 className="text-xl font-bold text-green-600 mb-4">⚖️ Normativa</h3>
+                                    <p className="text-gray-700 mb-4">
+                                        Comparte análisis de leyes, decretos, resoluciones y cambios normativos.
+                                    </p>
+                                    <div className="bg-green-50 p-3 rounded text-sm text-gray-700">
+                                        <strong>Ejemplo:</strong> "Análisis: Nueva Regulación sobre Teletrabajoactualización 2024"
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 className="text-xl font-bold text-red-600 mb-4">📋 Jurisprudencia</h3>
+                                    <p className="text-gray-700 mb-4">
+                                        Publica análisis de sentencias, criterios judiciales y precedentes relevantes.
+                                    </p>
+                                    <div className="bg-red-50 p-3 rounded text-sm text-gray-700">
+                                        <strong>Ejemplo:</strong> "Análisis: Sentencia Corte Suprema sobre Indemnización por Despido"
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-lg p-6 md:col-span-3">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4">💡 Consejos para LinkedIn</h3>
+                                    <ul className="space-y-3 text-gray-700">
+                                        <li className="flex gap-2">
+                                            <span className="text-blue-600 font-bold">→</span>
+                                            <span><strong>Títulos atractivos:</strong> Usa preguntas o afirmaciones provocadoras que generen engagement</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span className="text-blue-600 font-bold">→</span>
+                                            <span><strong>Hashtags estratégicos:</strong> #DerechoLaboral #LeyPeruana #AnálisisLegal #Jurisprudencia</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span className="text-blue-600 font-bold">→</span>
+                                            <span><strong>Resúmenes concisos:</strong> Máximo 500 caracteres para mayor impacto</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span className="text-blue-600 font-bold">→</span>
+                                            <span><strong>Consistencia:</strong> Publica regularmente (1-2 veces por semana) para mantener visibilidad</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span className="text-blue-600 font-bold">→</span>
+                                            <span><strong>Engage temprano:</strong> Responde comentarios en las primeras 2 horas de publicación</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-gray-900 text-gray-400 py-8 mt-16">
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <p className="mb-2">© 2024 PabloRimachi_Juris</p>
+                            <p className="text-xs">Plataforma de Análisis Legal | Derecho & Estrategia</p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
